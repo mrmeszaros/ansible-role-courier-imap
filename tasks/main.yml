@@ -1,0 +1,54 @@
+---
+# tasks file for ansible-role-courier/
+
+- name: Install base packages
+  action: apt pkg={{item}} state=present
+  with_items:
+  - courier-base
+  - courier-imap
+  - courier-maildrop
+  notify:
+    - restart courier-imap
+
+- name: Install base packages
+  action: apt pkg={{item}} state=present
+  with_items:
+  - courier-imap-ssl
+  when: courier_ssl is defined
+  register: installed_imap_ssl
+  notify:
+    - restart courier-imap-ssl
+
+- name: Remove dhparams.pem with 768 bits
+  file: path=/etc/courier/dhparams.pem state=absent
+  when: installed_imap_ssl.changed
+
+- name: Copy renew_dhparams.sh
+  copy: src=renew_dhparams.sh dest=/etc/courier/renew_dhparams.sh mode=0755
+
+- name: Regenerate dhparams.pem
+  command: /etc/courier/renew_dhparams.sh creates=/etc/courier/dhparams.pem
+
+- name: generate imapd.pem ssl certificate
+  command: bash -c 'cat {{ courier_ssl_certificate_key }} {{ courier_ssl_certificate }}  > /etc/courier/imapd.pem'
+  when: courier_ssl is defined
+  notify:
+    - restart courier-imap-ssl
+
+- name: add cronjobs for courier-imap-ssl
+  cron: name="dhparams renewal" user=root day="*/1" job="/etc/courier/renew_dhparams.sh"
+  when: courier_ssl is defined
+
+- name: Copy default maildroprc
+  copy: src=maildroprc dest=/etc/maildroprc
+
+- name: Copy default maildroprc
+  copy: src=maildroprc dest=/etc/courier/maildroprc
+
+
+- name: Install sasl requirements (Debian)
+  action: apt name={{item}} state=present
+  with_items:
+  - libsasl2-2
+  - sasl2-bin
+  - libsasl2-modules

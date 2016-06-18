@@ -1,0 +1,13 @@
+SHELL="/bin/sh"
+`test -d $HOME/Maildir/.SPAM`
+
+if ( $RETURNCODE == 1 )
+{
+    `/usr/bin/maildirmake -f Spam $HOME/Maildir`
+    `echo INBOX.Spam >> $HOME/Maildir/courierimapsubscribed`
+}
+
+if (/^Subject:.*SPAM/)
+{
+   to "$HOME/Maildir/.Spam"
+}
