@@ -36,7 +36,7 @@
     - restart courier-imap-ssl
 
 - name: add cronjobs for courier-imap-ssl
-  cron: name="dhparams renewal" user=root day="*/1" job="/etc/courier/renew_dhparams.sh"
+  cron: name="dhparams renewal" user=root minute=1 hour=1 day="1" job="/etc/courier/renew_dhparams.sh"
   when: courier_ssl is defined
 
 - name: Copy default maildroprc
