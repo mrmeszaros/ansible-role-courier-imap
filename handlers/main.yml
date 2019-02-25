@@ -1,6 +1,10 @@
 ---
-- name: restart courier-imap
-  service: name=courier-imap state=restarted 
+- name: Restart courier-imap
+  service:
+    name: courier-imap
+    state: restarted
 
-- name: restart courier-imap-ssl
-  service: name=courier-imap-ssl state=restarted 
+- name: Restart courier-imap-ssl
+  service:
+    name: courier-imap-ssl
+    state: restarted

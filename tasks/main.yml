@@ -2,53 +2,66 @@
 # tasks file for ansible-role-courier/
 
 - name: Install base packages
-  action: apt pkg={{item}} state=present
-  with_items:
-  - courier-base
-  - courier-imap
-  - courier-maildrop
-  notify:
-    - restart courier-imap
+  apt:
+    name:
+      - courier-base
+      - courier-imap
+      - courier-maildrop
+  notify: Restart courier-imap
 
 - name: Install base packages
-  action: apt pkg={{item}} state=present
-  with_items:
-  - courier-imap-ssl
+  apt:
+    name: courier-imap-ssl
   when: courier_ssl
   register: installed_imap_ssl
-  notify:
-    - restart courier-imap-ssl
+  notify: Restart courier-imap-ssl
 
-- name: Remove dhparams.pem with 768 bits
-  file: path=/etc/courier/dhparams.pem state=absent
+- name: Remove default dhparams.pem
+  file:
+    path: /etc/courier/dhparams.pem
+    state: absent
+  # noqa 503
   when: installed_imap_ssl.changed
 
 - name: Copy renew_dhparams.sh
-  copy: src=renew_dhparams.sh dest=/etc/courier/renew_dhparams.sh mode=0755
+  copy:
+    src: renew_dhparams.sh
+    dest: /etc/courier/renew_dhparams.sh
+    mode: 0755
 
 - name: Regenerate dhparams.pem
-  command: /etc/courier/renew_dhparams.sh creates=/etc/courier/dhparams.pem
+  command: /etc/courier/renew_dhparams.sh
+  args:
+    creates: /etc/courier/dhparams.pem
 
-- name: generate imapd.pem ssl certificate
-  command: bash -c 'cat {{ courier_ssl_certificate_key }} {{ courier_ssl_certificate }}  > /etc/courier/imapd.pem'
+- name: Generate imapd.pem ssl certificate
+  shell: cat {{ courier_ssl_certificate_key }} {{ courier_ssl_certificate }} > /etc/courier/imapd.pem
+  args:
+    executable: /bin/bash
   when: courier_ssl
-  notify:
-    - restart courier-imap-ssl
+  notify: Restart courier-imap-ssl
 
-- name: add cronjobs for courier-imap-ssl
-  cron: name="dhparams renewal" user=root minute=1 hour=1 day="1" job="/etc/courier/renew_dhparams.sh"
+- name: Add cronjob for courier-imap-ssl
+  cron:
+    name: dhparams renewal
+    job: /etc/courier/renew_dhparams.sh
+    user: root
+    day: 1
+    hour: 1
+    minute: 1
   when: courier_ssl
 
 - name: Copy default maildroprc
-  copy: src=maildroprc dest=/etc/maildroprc
-
-- name: Copy default maildroprc
-  copy: src=maildroprc dest=/etc/courier/maildroprc
-
+  loop:
+    - /etc/maildroprc
+    - /etc/courier/maildroprc
+  copy:
+    src: maildroprc
+    dest: "{{ item }}"
 
 - name: Install sasl requirements (Debian)
-  action: apt name={{item}} state=present
-  with_items:
-  - libsasl2-2
-  - sasl2-bin
-  - libsasl2-modules
+  apt:
+    name:
+      - libsasl2-2
+      - sasl2-bin
+      - libsasl2-modules
