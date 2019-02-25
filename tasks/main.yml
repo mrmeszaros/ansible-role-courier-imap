@@ -14,7 +14,7 @@
   action: apt pkg={{item}} state=present
   with_items:
   - courier-imap-ssl
-  when: courier_ssl is defined
+  when: courier_ssl
   register: installed_imap_ssl
   notify:
     - restart courier-imap-ssl
@@ -31,13 +31,13 @@
 
 - name: generate imapd.pem ssl certificate
   command: bash -c 'cat {{ courier_ssl_certificate_key }} {{ courier_ssl_certificate }}  > /etc/courier/imapd.pem'
-  when: courier_ssl is defined
+  when: courier_ssl
   notify:
     - restart courier-imap-ssl
 
 - name: add cronjobs for courier-imap-ssl
   cron: name="dhparams renewal" user=root minute=1 hour=1 day="1" job="/etc/courier/renew_dhparams.sh"
-  when: courier_ssl is defined
+  when: courier_ssl
 
 - name: Copy default maildroprc
   copy: src=maildroprc dest=/etc/maildroprc
